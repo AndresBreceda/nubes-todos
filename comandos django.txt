@@ -1,0 +1,99 @@
+
+#=============
+python3 -m venv venv
+source venv/bin/activate       # En Windows .\venv\Scripts\activate
+pip install django
+django-admin startproject mi_proyecto .
+python manage.py startapp core
+
+
+
+# mi_proyecto/settings.py ---
+# 
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'core',
+]
+
+# mi_proyecto/urls.py ---
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('core/urls')),
+]
+
+# core/models.py ---
+from django.db import models
+
+class Registro(models.Model):
+    texto = models.CharField(max_length=200)
+
+    def __str__(self):
+        return self.texto
+
+# core/forms.py ---
+from django import forms
+from .models import Registro
+
+class RegistroForm(forms.ModelForm):
+    class Meta:
+        model = Registro
+        fields = ['texto']
+        widgets = {
+            'texto': forms.TextInput(attrs={'placeholder': 'Escribe algo aquí...'})
+        }
+
+#core/views.py ---
+from django.shortcuts import render, redirect
+from .forms import RegistroForm
+
+def index(request):
+    if request.method == 'POST':
+        form = RegistroForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('index')
+    else:
+        form = RegistroForm()
+        
+    return render(request, 'core/index.html', {'form': form})
+
+# core/urls.py ---
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.index, name='index'),
+]
+
+# core/templates/core/index.html ---
+"""
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Formulario Django</title>
+</head>
+<body>
+    <h1>Guardar Datos</h1>
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.texto }}
+        <button type="submit">Guardar</button>
+    </form>
+</body>
+</html>
+"""
+
+
+# terminal
+python manage.py makemigrations  
+python manage.py migrate
+python manage.py runserver
